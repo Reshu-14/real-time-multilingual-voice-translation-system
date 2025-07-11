@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Voice Translator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <button id="home-button" class="mic-home-button" title="Go to Home">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <h1><i class="fas fa-language"></i> Real-Time Voice Translator</h1>
+            </div>
+            <div class="room-selector">
+                <input type="text" id="room-input" placeholder="Enter room name" value="default-room">
+                <button id="join-room"><i class="fas fa-door-open"></i> Join</button>
+            </div>
+        </header>
+
+        <div class="translator-box">
+            <div class="user-controls">
+                <div class="user-selector">
+                    <h2><i class="fas fa-user"></i> <span id="current-user">User 1</span></h2>
+                    <select id="user-lang">
+                        {% for code, lang in languages.items() %}
+                            <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>
+                                {{ lang.flag }} {{ lang.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="target-user">
+                    <h2><i class="fas fa-user-friends"></i> <span id="target-user">User 2</span></h2>
+                    <select id="target-lang">
+                        {% for code, lang in languages.items() %}
+                            <option value="{{ code }}" {% if code == 'hi' %}selected{% endif %}>
+                                {{ lang.flag }} {{ lang.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="message-box">
+                <textarea id="message-text" placeholder="Type your message here..."></textarea>
+                <div class="action-buttons">
+                    <button id="send-text" title="Send Text">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                    <button id="record-voice" title="Record Voice">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="switch-users" title="Switch Users">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-message" id="status-message"></div>
+            <div class="recording-indicator" id="recording-indicator">
+                <i class="fas fa-microphone-alt"></i> Listening... Speak now
+            </div>
+        </div>
+
+        <div class="conversation-history" id="conversation-history">
+            <!-- Messages will appear here -->
+        </div>
+    </div>
+
+    <audio id="audio-player" hidden></audio>
+
+    <script>
+        // Connect to Socket.IO
+        const socket = io();
+        let currentUser = 1;
+        let isRecording = false;
+        let currentRoom = null;
+
+        // DOM Elements
+        const homeButton = document.getElementById('home-button');
+        const roomInput = document.getElementById('room-input');
+        const joinRoomBtn = document.getElementById('join-room');
+        const messageText = document.getElementById('message-text');
+        const sendTextBtn = document.getElementById('send-text');
+        const recordVoiceBtn = document.getElementById('record-voice');
+        const switchUsersBtn = document.getElementById('switch-users');
+        const conversationHistory = document.getElementById('conversation-history');
+        const statusMessage = document.getElementById('status-message');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const currentUserDisplay = document.getElementById('current-user');
+        const targetUserDisplay = document.getElementById('target-user');
+        const userLangSelect = document.getElementById('user-lang');
+        const targetLangSelect = document.getElementById('target-lang');
+
+        // Event Listeners
+        homeButton.addEventListener('click', () => {
+            window.location.href = '/';
+        });
+
+        joinRoomBtn.addEventListener('click', joinRoom);
+        sendTextBtn.addEventListener('click', sendMessage);
+        recordVoiceBtn.addEventListener('click', toggleRecording);
+        switchUsersBtn.addEventListener('click', switchUsers);
+
+        // Socket.IO Events
+        socket.on('receive_message', handleReceivedMessage);
+        socket.on('system_message', showSystemMessage);
+
+        function joinRoom() {
+            const room = roomInput.value.trim() || 'default-room';
+            currentRoom = room;
+            socket.emit('join', { room: room });
+            showStatus(`Joined room: ${room}`, false);
+        }
+
+        function sendMessage() {
+            if (!currentRoom) {
+                showStatus('Please join a room first', true);
+                return;
+            }
+
+            const text = messageText.value.trim();
+            if (!text) {
+                showStatus('Please enter a message', true);
+                return;
+            }
+
+            const src_lang = userLangSelect.value;
+            const dest_lang = targetLangSelect.value;
+
+            showStatus('Sending message...');
+
+            socket.emit('send_message', {
+                text: text,
+                src_lang: src_lang,
+                dest_lang: dest_lang,
+                room: currentRoom
+            });
+
+            // Add to local history immediately
+            addMessageToHistory(currentUser, text, 'Translating...', src_lang, dest_lang);
+            messageText.value = '';
+        }
+
+        function handleReceivedMessage(data) {
+            addMessageToHistory(
+                currentUser === 1 ? 2 : 1,
+                data.original,
+                data.translated,
+                data.src_lang,
+                data.dest_lang
+            );
+
+            // Play audio if available
+            if (data.audio_file) {
+                const audioPlayer = document.getElementById('audio-player');
+                audioPlayer.src = data.audio_file;
+                audioPlayer.play();
+            }
+        }
+
+        function toggleRecording() {
+            if (isRecording) return;
+            if (!currentRoom) {
+                showStatus('Please join a room first', true);
+                return;
+            }
+
+            isRecording = true;
+            recordVoiceBtn.disabled = true;
+            recordingIndicator.style.display = 'block';
+            showStatus('Listening... Speak now');
+
+            const lang = userLangSelect.value;
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = lang + '-IN'; // Using Indian locale for Indian languages
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                messageText.value = transcript;
+                showStatus('Voice captured successfully');
+            };
+
+            recognition.onerror = (event) => {
+                showStatus('Error recognizing speech: ' + event.error, true);
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                recordVoiceBtn.disabled = false;
+                recordingIndicator.style.display = 'none';
+            };
+
+            recognition.start();
+        }
+
+        function switchUsers() {
+            currentUser = currentUser === 1 ? 2 : 1;
+            currentUserDisplay.textContent = `User ${currentUser}`;
+            targetUserDisplay.textContent = `User ${currentUser === 1 ? 2 : 1}`;
+            showStatus(`Now speaking as User ${currentUser}`);
+        }
+
+        function addMessageToHistory(sender, original, translated, src_lang, dest_lang) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-user${sender}`;
+            
+            const senderName = `User ${sender}`;
+            const srcLangName = document.querySelector(`#user-lang option[value="${src_lang}"]`).text;
+            const destLangName = document.querySelector(`#target-lang option[value="${dest_lang}"]`).text;
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="user-flag">${srcLangName.substring(0, 2)}</span>
+                    ${senderName} (${srcLangName.substring(3)}) → 
+                    <span class="user-flag">${destLangName.substring(0, 2)}</span>
+                    User ${sender === 1 ? 2 : 1} (${destLangName.substring(3)})
+                </div>
+                <div class="original-message"><strong>Original:</strong> ${original}</div>
+                <div class="translated-message"><strong>Translated:</strong> ${translated}</div>
+            `;
+            
+            conversationHistory.appendChild(messageDiv);
+            conversationHistory.scrollTop = conversationHistory.scrollHeight;
+        }
+
+        function showStatus(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.className = isError ? 'status-message error' : 'status-message info';
+            statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        function showSystemMessage(data) {
+            const systemDiv = document.createElement('div');
+            systemDiv.className = `system-message ${data.type}`;
+            systemDiv.textContent = data.text;
+            conversationHistory.appendChild(systemDiv);
+            conversationHistory.scrollTop = conversationHistory.scrollHeight;
+        }
+
+        // Join default room on load
+        window.addEventListener('load', () => {
+            joinRoom();
+        });
+    </script>
+</body>
+</html>

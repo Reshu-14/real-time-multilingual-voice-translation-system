@@ -1,0 +1,261 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    background-color: #f5f7fa;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    margin-bottom: 25px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+header h1 {
+    color: #4285f4;
+    margin-bottom: 0;
+}
+
+.mic-home-button {
+    background-color: #4285f4;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.mic-home-button:hover {
+    background-color: #3367d6;
+    transform: scale(1.1);
+}
+
+.room-selector {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.room-selector input {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    width: 300px;
+}
+
+.room-selector button {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.room-selector button:hover {
+    background-color: #3367d6;
+}
+
+.translator-box {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.user-controls {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.user-selector, .target-user {
+    flex: 1;
+}
+
+.user-selector h2, .target-user h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #5f6368;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: white;
+}
+
+.message-box textarea {
+    width: 100%;
+    height: 120px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: none;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+#send-text {
+    background-color: #4285f4;
+    color: white;
+}
+
+#send-text:hover {
+    background-color: #3367d6;
+}
+
+#record-voice {
+    background-color: #34a853;
+    color: white;
+}
+
+#record-voice:hover {
+    background-color: #2d9249;
+}
+
+#switch-users {
+    background-color: #fbbc05;
+    color: white;
+}
+
+#switch-users:hover {
+    background-color: #e6ac00;
+}
+
+.status-message {
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: none;
+}
+
+.status-message.info {
+    background-color: #e6f4ea;
+    color: #137333;
+}
+
+.status-message.error {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.recording-indicator {
+    display: none;
+    padding: 10px;
+    background-color: #fef7e0;
+    color: #e37400;
+    border-radius: 8px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.conversation-history {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.message {
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-user1 {
+    background-color: #e8f0fe;
+    border-left: 4px solid #4285f4;
+}
+
+.message-user2 {
+    background-color: #e6f4ea;
+    border-left: 4px solid #34a853;
+}
+
+.message-header {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-flag {
+    font-size: 20px;
+}
+
+.system-message {
+    padding: 10px;
+    background-color: #f1f3f4;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .user-controls {
+        flex-direction: column;
+    }
+    
+    .room-selector {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .room-selector input {
+        width: 100%;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .mic-home-button {
+        margin-bottom: 10px;
+    }
+}
